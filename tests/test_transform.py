@@ -4,7 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "pipeline"))
-from transform import campaign_id_from_utm, name_from_utm, what_moved  # noqa: E402
+from transform import campaign_id_from_utm, name_from_utm, rate_change_p, what_moved, wilson  # noqa: E402
 
 
 class CampaignIdFromUtm(unittest.TestCase):
@@ -59,6 +59,20 @@ class WhatMoved(unittest.TestCase):
         junk = self.facts(1, range(31, 61), 10000, 80, 0)          # cheap, zero sales
         c = what_moved(good + junk, self.META, self.TODAY)
         self.assertTrue(any(x["campaign"] == "Camp A" and x["title"] == "Cheap leads that don't buy" for x in c))
+
+
+class Stats(unittest.TestCase):
+    def test_same_rate_is_not_significant(self):
+        self.assertGreater(rate_change_p(100, 10000, 400, 40000), 0.9)
+
+    def test_halved_rate_is_significant(self):
+        self.assertLess(rate_change_p(50, 10000, 400, 40000), 0.001)
+
+    def test_wilson_contains_point_and_handles_zero(self):
+        lo, hi = wilson(5, 100)
+        self.assertTrue(lo < 0.05 < hi)
+        lo, hi = wilson(0, 500)
+        self.assertEqual(lo, 0.0); self.assertLess(hi, 0.01)
 
 
 if __name__ == "__main__":

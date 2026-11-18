@@ -56,6 +56,14 @@ h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,4.6vw,48px)
 .kpi small{display:block;font-size:12px;color:var(--ink-3)}
 .kpi b{display:block;font-family:var(--f-display);font-weight:800;font-size:27px;line-height:1.1;margin-top:8px;white-space:nowrap}
 .kpi span{font-size:12px;color:var(--ink-3)}
+.exec{border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:color-mix(in srgb,var(--accent) 5%,var(--sheet));border-radius:14px;padding:18px 20px;margin:0 0 18px}
+.exec .lbl{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.exec h2{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.25;margin:6px 0 10px}
+.exec ul{margin:0 0 12px;padding-left:18px;color:var(--ink-2)} .exec li{margin-bottom:4px}
+.exec .rec{display:flex;gap:10px;align-items:flex-start;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14.5px}
+.exec .rec b{color:var(--accent);flex:none}
+.stat{display:inline-block;font:500 11px var(--f-mono);color:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px;background:var(--sheet);vertical-align:1px}
+.limits ul{margin:0;padding-left:18px;color:var(--ink-2)} .limits li{margin-bottom:6px}
 .note{font-size:12.5px;color:var(--amber);background:var(--amber-soft);border-radius:8px;padding:8px 12px;margin:-6px 0 18px}
 .card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px;margin-bottom:18px}
 .card h2{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0 0 4px}
@@ -113,6 +121,8 @@ footer{color:var(--ink-3);font-size:13px;padding:22px 0 40px;display:flex;flex-w
 </div></header>
 
 <main class="wrap">
+  <section class="exec" id="exec" aria-label="Executive summary"></section>
+
   <div class="controls">
     <div class="ctl">Leads created in
       <div class="seg" id="f-range"><button data-v="7" aria-pressed="false">Last 7 days</button><button data-v="30" aria-pressed="false">30 days</button><button data-v="90" aria-pressed="true">90 days</button></div>
@@ -125,7 +135,7 @@ footer{color:var(--ink-3);font-size:13px;padding:22px 0 40px;display:flex;flex-w
 
   <section class="card">
     <h2>What moved this week</h2>
-    <p class="sub">Last 7 complete days against the 28 days before, per campaign. Rule-based, sized in rupees, biggest first.</p>
+    <p class="sub">Last 7 complete days against the 28 days before, per campaign. An alert fires only if it clears a business threshold <b>and</b> a statistical test: a Poisson rate test for CPL (p &lt; 0.01), a 95% Wilson interval for sale rate, and the Poisson chance of zero leads. Sized in rupees, biggest first.</p>
     <div class="moves" id="moves"></div>
   </section>
 
@@ -171,6 +181,17 @@ footer{color:var(--ink-3);font-size:13px;padding:22px 0 40px;display:flex;flex-w
       <p class="sub" style="margin-top:12px">So a lead cohort is judged after 30 days. Before that, the console labels it as maturing instead of calling it a drop.</p>
     </section>
   </div>
+
+  <section class="card limits">
+    <h2>Limitations, and what I'd do next</h2>
+    <ul>
+      <li><b>Last-touch credit.</b> Each lead is credited to the campaign in its UTM. A campaign that warms people up for another to convert is undervalued. Next: a position-based or data-driven model on the full touch history, compared with this one.</li>
+      <li><b>ROAS is not incrementality.</b> Brand and retargeting look excellent partly because those people would have bought anyway. Next: geo or audience holdout tests before scaling any of them.</li>
+      <li><b>Scaling assumes constant returns.</b> Moving budget to the best campaign won't keep its ROAS: costs rise as audiences saturate. That's why the recommendation is a 4-week test, not a reallocation.</li>
+      <li><b>Revenue is booked value, not collected.</b> Refunds and EMI defaults would lower ROAS unevenly by channel. Next: join finance's net revenue.</li>
+      <li><b>Alert thresholds are judgment calls.</b> +25% CPL and ₹30k/week were chosen so the list stays short enough to act on. The significance test protects against noise, not against a threshold that is set too high.</li>
+    </ul>
+  </section>
 
   <section class="card how">
     <h2>How it's built</h2>
@@ -249,7 +270,7 @@ footer{color:var(--ink-3);font-size:13px;padding:22px 0 40px;display:flex;flex-w
   function renderMoves(){
     var m = D.callouts.filter(function(c){ return state.ch === 'all' || c.channel === state.ch; });
     document.getElementById('moves').innerHTML = m.length ? m.map(function(c){
-      return '<div class="move '+c.kind+'"><div class="ic">'+(c.kind === 'bad' ? '⚠️' : '✅')+'</div><div><h3>'+c.title+' <span>· '+c.campaign+' · '+c.channel+'</span></h3><p>'+c.detail+'</p></div>'+
+      return '<div class="move '+c.kind+'"><div class="ic">'+(c.kind === 'bad' ? '⚠️' : '✅')+'</div><div><h3>'+c.title+' <span>· '+c.campaign+' · '+c.channel+'</span>'+(c.stat ? '<span class="stat">'+c.stat+'</span>' : '')+'</h3><p>'+c.detail+'</p></div>'+
         '<div class="amt">'+inr(c.impact)+'<small>'+(c.kind === 'bad' ? 'at stake' : 'gained')+'</small></div></div>';
     }).join('') : '<p class="sub">Nothing crossed a threshold this week for this channel.</p>';
   }
@@ -350,6 +371,9 @@ footer{color:var(--ink-3);font-size:13px;padding:22px 0 40px;display:flex;flex-w
   }
 
   function renderStatic(){
+    var X = D.summary;
+    document.getElementById('exec').innerHTML = '<div class="lbl">Executive summary · computed from today\'s data</div><h2>' + X.headline + '</h2><ul>' +
+      X.points.map(function(p){ return '<li>' + p + '</li>'; }).join('') + '</ul><div class="rec"><b>Recommendation</b><span>' + X.recommendation + '</span></div>';
     var j = D.join, n = j.paid_leads;
     var bars = [['Join on name', j.matched_by_name, v('--bad')], ['Join on campaign ID', j.matched_by_id, v('--good')]];
     document.getElementById('joinbars').innerHTML = bars.map(function(b){ return '<div class="jb"><span>'+b[0]+'</span><div class="track"><i style="width:'+(100*b[1]/n).toFixed(1)+'%;background:'+b[2]+'"></i></div><b>'+(100*b[1]/n).toFixed(1)+'%</b></div>'; }).join('');

@@ -14,6 +14,15 @@
 
 > **Demo with synthetic data.** I built and run the production version of this console on company data I can't share. This repo is a clean-room rebuild: fresh code, a made-up business with 16 campaigns across Google, Meta, YouTube and LinkedIn, and the same rules.
 
+## Executive summary
+
+- **The cheapest campaign is the worst investment.** About ₹145 per lead, but about 0.2% of its leads buy, against 2.2% on average (95% interval 0.11–0.29%). Ranked by CPL, it gets more budget.
+- **About ₹4 lakh a month goes to campaigns returning under 1.5×** on mature cohorts. Overall mature ROAS is about 4.9×.
+- **A name-based spend join loses about 13% of paid leads.** The ID join recovers them.
+- **Recommendation:** pause the weakest campaign, test half its budget on the two best *scalable* campaigns for 4 weeks with a holdout, and judge on 30-day-mature ROAS. Full reasoning in the **[decision memo](docs/decision_memo.md)**.
+
+*The live page recomputes this summary from each morning's data.*
+
 ## The problem
 
 Marketing reports cost per lead. Sales reports revenue. Nobody can say which campaign's rupees turned into which sales, so budget follows the cheapest leads rather than the most profitable ones.
@@ -43,6 +52,23 @@ Joining the two sounds easy. In practice it breaks in three quiet ways:
 - **A cohort matures for 30 days** before its ROAS is judged. The data supports this: 99% of sales land within 30 days.
 - **"What moved" is rules, not a language model.** It compares the last 7 days with the 28 before. It only fires above ₹30k weekly spend, with thresholds of +25% / −20% CPL, zero leads for 3 days, and a sale rate under 15% of average. Every alert carries a rupee figure, so the biggest problem is at the top.
 
+## Statistical checks: why an alert isn't noise
+
+Every alert must clear a business threshold **and** a statistical test, so the list stays short and trustworthy:
+
+| Alert | Test |
+|---|---|
+| CPL up / down | Leads per rupee compared across the two periods with a conditional binomial (Poisson rate) test. It fires only at p < 0.01, so normal weekly wobble doesn't page anyone (there's a unit test for exactly that) |
+| Cheap leads that don't buy | 95% Wilson interval on the mature sale rate. It fires only if even the *upper* end is below 15% of the average |
+| Zero leads with spend | Poisson probability of zero leads given what the spend would normally buy (about 23 leads expected → p < 0.001) |
+
+## Limitations, and what I'd do next
+
+- **Last-touch credit** undervalues campaigns that warm people up for another campaign to convert. Next: a position-based or data-driven model compared with this one.
+- **ROAS is not incrementality.** Brand and retargeting partly capture people who'd buy anyway. Next: geo or audience holdouts before scaling them.
+- **Returns fall as a campaign scales**, which is why the recommendation is a test, not a reallocation.
+- **Booked revenue, not net.** Next: join finance's net revenue (refunds, EMI defaults), which can differ by channel.
+
 ## How it works
 
 ```mermaid
@@ -59,7 +85,9 @@ flowchart LR
 | `pipeline/generate_synthetic.py` | Synthetic spend and leads, with the traps built in: a renamed campaign, messy UTMs, sale lag, and planted stories |
 | `pipeline/transform.py` | ID extraction, the join (both ways, to measure the gap), daily cohort facts, sale-lag curve, rule-based callouts |
 | `sql/campaign_roi.sql` | The same join and metrics in BigQuery SQL (`REGEXP_EXTRACT` on the UTM, full outer join of spend and funnel, maturity share) |
-| `tests/` | ID extraction edge cases, and each callout rule (including that small noise does *not* fire) |
+| `tests/` | 12 tests: ID extraction edge cases, each callout rule (including that small noise does *not* fire), and the statistical helpers |
+| `docs/decision_memo.md` | One-page memo for the CEO: the decision, the evidence, the options, the recommendation, and what would change it |
+| `docs/data_dictionary.md` | Every input column, output field, metric definition and alert rule |
 | `site/index.html` | A single static page (vanilla JS + Chart.js) |
 
 ## Run it locally
