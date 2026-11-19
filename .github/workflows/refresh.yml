@@ -29,7 +29,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Unit tests
+      - name: Install app dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit tests (pipeline + Streamlit AppTest)
         run: python -m unittest discover -s tests -v
 
       - name: Generate synthetic spend and leads

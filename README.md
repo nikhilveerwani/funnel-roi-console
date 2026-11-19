@@ -5,6 +5,7 @@
 **Where the money goes, and what comes back: ad spend joined to the full lead funnel on campaign ID, with scale / fix / cut and "what moved this week" in rupees.**
 
 [![Live demo](https://img.shields.io/badge/Live_demo-open_the_console-2F4BD8?style=for-the-badge)](https://nikhilveerwani.github.io/funnel-roi-console/)
+[![Streamlit app](https://img.shields.io/badge/Interactive_app-Streamlit-1F3864?style=for-the-badge&logo=streamlit&logoColor=white)](https://nikhil-funnel-roi.streamlit.app)
 [![Refresh console](https://github.com/nikhilveerwani/funnel-roi-console/actions/workflows/refresh.yml/badge.svg)](https://github.com/nikhilveerwani/funnel-roi-console/actions/workflows/refresh.yml)
 ![Synthetic data](https://img.shields.io/badge/data-synthetic-B7791F)
 
@@ -90,6 +91,19 @@ flowchart LR
 | `docs/data_dictionary.md` | Every input column, output field, metric definition and alert rule |
 | `site/index.html` | A single static page (vanilla JS + Chart.js) |
 
+## Interactive version (Streamlit)
+
+**[Open the app →](https://nikhil-funnel-roi.streamlit.app)**
+
+The same data and the same tested rules (it imports `pipeline/transform.py`), plus what a static page can't do:
+
+- **Filters** by channel and lead date.
+- **Scale / fix / cut** against the median *scalable* campaign. Brand and retargeting inflate the plain average, which would make every healthy prospecting campaign look "below average".
+- **Budget simulator.** Edit any campaign's budget and see projected revenue and ROAS. It assumes diminishing returns, `revenue' = revenue × (budget'/budget)^e`, with the elasticity on a slider and a lower one for capped audiences. "Apply recommendation" cuts the weakest campaign and moves half its budget to the two best scalable ones. On the day I built it, that came to about +₹1.8 L a month in revenue on ₹2 L less spend.
+- An `AppTest` smoke test clicks the button and checks that revenue rises while the budget falls.
+
+<img src="docs/streamlit_app.png" alt="Streamlit app: budget simulator" width="860">
+
 ## Run it locally
 
 ```bash
@@ -97,9 +111,12 @@ python -m unittest discover -s tests
 python pipeline/generate_synthetic.py --out data --days 120
 python pipeline/transform.py --data data --out site/data.js
 # open site/index.html
+
+pip install -r requirements.txt        # only for the Streamlit app
+streamlit run streamlit_app.py
 ```
 
-It uses only the Python standard library.
+The pipeline uses only the Python standard library; the app adds Streamlit, pandas and Altair.
 
 ---
 
